@@ -20,13 +20,18 @@ main <- function() {
 
   dailySum <- aggregate(nonZeroClean$steps, by=list(date = nonZeroClean$date), FUN = sum);
   names(dailySum) <- c("Date", "TotalSteps");
+  
+  dailySumHist <- ggplot(dailySum) + geom_histogram(aes(TotalSteps), binwidth=500)
+  print(dailySumHist);
+  
+  meanPerDay <- mean(dailySum$TotalSteps, na.rm=T);
+  
   dailyMedian <- aggregate(nonZeroClean$steps, by=list(date = nonZeroClean$date), FUN = median);
   names(dailyMedian) <- c("Date", "MedianSteps")
   dailyMean <- aggregate(nonZeroClean$steps, by=list(date = nonZeroClean$date), FUN = mean);
   names(dailyMean) <- c("Date", "MeanSteps");
   
-  dailySumHist <- ggplot(dailySum) + geom_histogram(aes(TotalSteps), binwidth=500)
-  print(dailySumHist);
+  
 
   # At the interval level, we'll need to inject some data:
   
@@ -53,31 +58,35 @@ main <- function() {
   # median total number of steps taken per day. Do these values differ from the estimates from the first 
   # part of the assignment? What is the impact of imputing missing data on the estimates of the total
   # daily number of steps?
-  adjustedDailyTotal <- aggregate(adjustedActivity$steps, by=list(date = adjustedActivity$date), FUN = sum)
-  names(adjustedDailyTotal) <- c("Date", "Total");
-  adjustedDailyTotalHist <- ggplot(adjustedDailyTotal) + geom_histogram(aes(Total), binwidth=500);
-  print(adjustedDailyTotalHist);
+  imputedDailyTotal <- aggregate(imputed_activity$imputed_steps, by=list(date = imputed_activity$date), FUN = sum)
+  names(imputedDailyTotal) <- c("date", "total");
+  imputedDailyTotalHist <- ggplot(imputedDailyTotal) + geom_histogram(aes(total), binwidth=500);
+  print(imputedDailyTotalHist);
   
-  adjustedDailyMedian <- aggregate(adjustedActivity$steps, by=list(date = adjustedActivity$date), FUN = median);
-  names(adjustedDailyMedian) <- c("Date", "Median")
-  adjustedDailyMean <- aggregate(adjustedActivity$steps, by=list(date = adjustedActivity$date), FUN = mean);
-  names(adjustedDailyMean) <- c("Date", "Mean");
+  imputedDailyMedian <- aggregate(imputed_activity$imputed_steps, by=list(date = imputed_activity$date), FUN = median);
+  names(imputedDailyMedian) <- c("date", "median")
+  imputedDailyMean <- aggregate(imputed_activity$steps, by=list(date = imputed_activity$date), FUN = mean);
+  names(imputedDailyMean) <- c("date", "mean");
   
   # Create a new factor variable in the dataset with two levels -- "weekday" and "weekend" 
   # indicating whether a given date is a weekday or weekend day.
   dayType <- factor(c("Weekend", "Weekday"));
-  calendarizedAdjustedActivity <- data.frame(adjustedActivity, type = sapply(adjustedActivity$date, dayTypeFunc));
+  calendarizedAdjustedActivity <- data.frame(imputed_activity, type = sapply(imputed_activity$date, dayTypeFunc));
   
-  padded <- data.frame(calendarizedAdjustedActivity, padded_interval = sapply(calendarizedAdjustedActivity$interval, zeroPadInterval));
-  justDateTime <- data.frame(date = padded$date, time = padded$padded_interval);
-  dateStrings <- paste(justDateTime$date, justDateTime$time);
-  parsed_date <- strptime(dateStrings, "%F %H%M");
+  weekendData <- calendarizedAdjustedActivity[calendarizedAdjustedActivity$type == "Weekend", c("interval", "imputed_steps")];
+  weekendAverage <- data.frame(aggregate(weekendData$imputed_steps, by=list(interval = weekendData$interval), FUN = mean), type="Weekend");
   
-  timeSeriesActivity <- data.frame(calendarizedAdjustedActivity, actual_date = parsed_date);
+  weekdayData <- calendarizedAdjustedActivity[calendarizedAdjustedActivity$type == "Weekday", c("interval", "imputed_steps")]
+  weekdayAverage <- data.frame(aggregate(weekdayData$imputed_steps, by=list(interval = weekdayData$interval), FUN = mean), type="Weekday");
+
+  combined <- rbind(weekendAverage, weekdayAverage);
+  names(combined) <- c("interval", "avg_steps", "type");
+  plot(weekendData, type="l")
+  plot(weekdayData, type="l")
   
   # Make a time series plot (i.e. typed = "l") of the 5-minute interval (x-axis) and the 
   # average number of steps taken, average across all days (y-axis)
-  p <- ggplot(timeSeriesActivity) + geom_line(aes(actual_date, steps)) + facet_grid(type ~ .)
+  p <- ggplot(calendarizedAdjustedActivity) + geom_line(aes(date_time, imputed_steps)) + facet_grid(type ~ .)
   print(p)  
 }
 
