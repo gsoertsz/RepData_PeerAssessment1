@@ -10,12 +10,14 @@ ensureActivityData <- function(srcFileName = "activity.csv", archiveName = "acti
 }
 
 main <- function() {
-  df <- ensureActivityData();
+  raw_df <- ensureActivityData();
+  
+  df <- data.frame(raw_df, date_time = strptime(paste(raw_df$date, sapply(raw_df$interval, zeroPadInterval)), "%F %H%M"));
   
   cleanDf <- df[(which(!is.na(df$steps))), ]
   nonZeroClean <- df[(cleanDf$steps != 0), ]
   # histogram of daily steps taken
-  
+
   dailySum <- aggregate(nonZeroClean$steps, by=list(date = nonZeroClean$date), FUN = sum);
   names(dailySum) <- c("Date", "TotalSteps");
   dailyMedian <- aggregate(nonZeroClean$steps, by=list(date = nonZeroClean$date), FUN = median);
@@ -23,11 +25,9 @@ main <- function() {
   dailyMean <- aggregate(nonZeroClean$steps, by=list(date = nonZeroClean$date), FUN = mean);
   names(dailyMean) <- c("Date", "MeanSteps");
   
-  # TODO Format this!
   dailySumHist <- ggplot(dailySum) + geom_histogram(aes(TotalSteps), binwidth=500)
-  print(dailySumHist)
-  
-  
+  print(dailySumHist);
+
   # At the interval level, we'll need to inject some data:
   
   # Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
@@ -37,14 +37,23 @@ main <- function() {
   # For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
   
   # all NA's get the daily average
-  adjustedActivity <- data.frame(df, sapply(df$date, addAverageForRespectiveDay, averages=dailyMean));
-  names(adjustedActivity) <- c("steps_unadjusted", "date", "interval", "steps");
+  withMean <- data.frame(df, with_mean = sapply(df$date, addAverageForRespectiveDay, averages=dailyMean));
+  
+  imputed_activity <- data.frame(withMean, imputed_steps = mapply(FUN=chooseMeanOrValueOnNA, steps=withMean$steps, mean=withMean$with_mean));
+  # Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average 
+  # number of steps taken, averaged across all days (y-axis)
+  aggregatedByInterval <- aggregate(cleanDf$steps, by=list(interval = cleanDf$interval), FUN = mean);
+  names(aggregatedByInterval) <- c("interval", "AvgSteps")
+  
+  avgIntervalTsPlot <- ggplot(aggregatedByInterval) + geom_line(aes(interval, AvgSteps))
+  print(avgIntervalTsPlot);
+  maxAvgStepsInterval <- aggregatedByInterval[(aggregatedByInterval$AvgSteps == max(aggregatedByInterval$AvgSteps)), ]
   
   # Make a histogram of the total number of steps taken each day and Calculate and report the mean and 
   # median total number of steps taken per day. Do these values differ from the estimates from the first 
   # part of the assignment? What is the impact of imputing missing data on the estimates of the total
   # daily number of steps?
-  adjustedDailyTotal <- aggregate(adjustedActivity$steps, by=list(date = adjustedActivity$date), FUN = "sum")
+  adjustedDailyTotal <- aggregate(adjustedActivity$steps, by=list(date = adjustedActivity$date), FUN = sum)
   names(adjustedDailyTotal) <- c("Date", "Total");
   adjustedDailyTotalHist <- ggplot(adjustedDailyTotal) + geom_histogram(aes(Total), binwidth=500);
   print(adjustedDailyTotalHist);
@@ -68,10 +77,8 @@ main <- function() {
   
   # Make a time series plot (i.e. typed = "l") of the 5-minute interval (x-axis) and the 
   # average number of steps taken, average across all days (y-axis)
-  p <- ggplot(timeSeriesActivity) + geom_line(aes(steps, actual_date))
+  p <- ggplot(timeSeriesActivity) + geom_line(aes(actual_date, steps)) + facet_grid(type ~ .)
   print(p)  
-  
-  # TODO
 }
 
 zeroPadInterval <- function(intervalStr) {
@@ -87,6 +94,14 @@ dayTypeFunc <- function(date) {
   if (day == "Saturday" | day == "Sunday") {
     return ("Weekend")
   } else return ("Weekday");
+}
+
+chooseMeanOrValueOnNA <- function(steps, mean) {
+  if(is.na(steps)) {
+    return (mean);
+  } else {
+    return (steps);
+  }
 }
 
 addAverageForRespectiveDay <- function(date, averages) {

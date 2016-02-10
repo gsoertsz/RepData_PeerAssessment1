@@ -1,3 +1,7 @@
+```{r echo=FALSE, results="hide"}
+library(xtable)
+```
+
 ---
 title: "Reproducible Research: Peer Assessment 1"
 output: 
@@ -8,11 +12,52 @@ output:
 
 ## Loading and preprocessing the data
 
+### Source Data
 
+The CSV source data is unpacked from the provided archive and loaded into R as a data frame.
+
+```{r ingestion, results="asis"}
+ensureActivityData <- function(srcFileName = "activity.csv", archiveName = "activity.zip", baseDir = ".") {
+  activitySrcPath <- file.path(baseDir, srcFileName);
+  if (!file.exists(activitySrcPath)) {
+    unzip(zipfile = file.path(baseDir, archiveName), overwrite = TRUE, exdir = baseDir);
+  }
+  
+  return (read.csv(activitySrcPath, stringsAsFactors = FALSE))
+}
+```
+### Add parsed date variable for time-series plotting
+
+A variable is added that represents the date for the purposes of plotting the time series.
+```{r}
+data <- ensureActivityData();
+```
+
+```{r Data Set Preprocessing}
+padded <- data.frame(data, padded_interval = sapply(data$interval, zeroPadInterval));
+justDateTime <- data.frame(date = padded$date, time = padded$padded_interval);
+dateStrings <- paste(justDateTime$date, justDateTime$time);
+parsed_date <- strptime(dateStrings, "%F %H%M");
+enrichedData <- data.frame(data, datetimestamp = parsed_date);
+```
+
+```{r pre-processed data, results="asis"}
+xt <- xtable(head(enrichedData))
+print(xt, type="html")
+```
 
 ## What is mean total number of steps taken per day?
 
-
+```{r echo=FALSE, results="asis"}
+df <- ensureActivityData();
+  
+cleanDf <- df[(which(!is.na(df$steps))), ]
+nonZeroClean <- df[(cleanDf$steps != 0), ]
+dailyMean <- aggregate(nonZeroClean$steps, by=list(date = nonZeroClean$date), FUN = mean);
+names(dailyMean) <- c("Date", "MeanSteps");
+mxt <- xtable(dailyMean, );
+print(mxt, type="html")
+```
 
 ## What is the average daily activity pattern?
 
@@ -23,3 +68,27 @@ output:
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+## Supporting functions
+```{r supportingFunctions }
+zeroPadInterval <- function(intervalStr) {
+  zeros <- rep(0, 4-nchar(as.character(intervalStr)));
+  result <- paste0(paste0(zeros, collapse=""), as.character(intervalStr), collapse="")
+  return (result);
+}
+
+# takes a date string and returns a string (level) indicating whether its a weekday or a weekend
+dayTypeFunc <- function(date) {
+  d <- strptime(date, format = "%F");
+  day <- weekdays(d);
+  if (day == "Saturday" | day == "Sunday") {
+    return ("Weekend")
+  } else return ("Weekday");
+}
+
+addAverageForRespectiveDay <- function(date, averages) {
+  avg <- averages[(averages$Date == date), "MeanSteps"]
+  if (is.na(avg)) return (0);
+  return (avg);
+}
+```
