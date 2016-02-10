@@ -75,7 +75,7 @@ if (window.hljs && document.readyState && document.readyState === "complete") {
 <p>Add a parsed date field in order to plot the time-series graphs</p>
 <pre class="r"><code>df &lt;- data.frame(raw_df, date_time = strptime(paste(raw_df$date, sapply(raw_df$interval, zeroPadInterval)), &quot;%F %H%M&quot;));</code></pre>
 <!-- html table generated in R 3.1.2 by xtable 1.8-2 package -->
-<!-- Wed Feb 10 17:07:12 2016 -->
+<!-- Thu Feb 11 09:10:34 2016 -->
 <table border="1">
 <tr> <th>  </th> <th> 
 steps
@@ -148,7 +148,7 @@ date_time
 <h2>What is mean total number of steps taken per day?</h2>
 <p>The src data is aggregated based on date as below:</p>
 <!-- html table generated in R 3.1.2 by xtable 1.8-2 package -->
-<!-- Wed Feb 10 17:07:12 2016 -->
+<!-- Thu Feb 11 09:10:34 2016 -->
 <table border="1">
 <tr> <th>  </th> <th> 
 date
@@ -623,7 +623,7 @@ imputed_activity &lt;- data.frame(withMean, imputed_steps = mapply(FUN=chooseMea
 imputed_table &lt;- xtable(head(imputed_activity[(is.na(imputed_activity$steps) | (imputed_activity$steps != 0)), c(&quot;date&quot;, &quot;interval&quot;, &quot;steps&quot;, &quot;imputed_steps&quot;)], 25), );
 print(imputed_table, &quot;html&quot;)</code></pre>
 <!-- html table generated in R 3.1.2 by xtable 1.8-2 package -->
-<!-- Wed Feb 10 17:07:14 2016 -->
+<!-- Thu Feb 11 09:10:36 2016 -->
 <table border="1">
 <tr> <th>  </th> <th> 
 date
@@ -886,7 +886,7 @@ calendarizedAdjustedActivity.withFormattedDates[, &quot;date_time&quot;] &lt;- a
 xta &lt;- xtable(head(calendarizedAdjustedActivity.withFormattedDates), )
 print(xta, &quot;html&quot;)</code></pre>
 <!-- html table generated in R 3.1.2 by xtable 1.8-2 package -->
-<!-- Wed Feb 10 17:07:15 2016 -->
+<!-- Thu Feb 11 09:10:37 2016 -->
 <table border="1">
 <tr> <th>  </th> <th> 
 steps
