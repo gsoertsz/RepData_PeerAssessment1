@@ -36,14 +36,17 @@ Add a parsed date field in order to plot the time-series graphs
 df <- data.frame(raw_df, date_time = strptime(paste(raw_df$date, sapply(raw_df$interval, zeroPadInterval)), "%F %H%M"));
 ```
 
-```{r pre-processed data, results="asis"}
-xt <- xtable(head(df))
+```{r pre-processed data, echo=FALSE, results="asis"}
+with_fmt_dates <- df
+with_fmt_dates[, "date_time"] <- as.character(with_fmt_dates[, "date_time"])
+xt <- xtable(head(with_fmt_dates))
 print(xt, type="html")
 ```
 
 ## What is mean total number of steps taken per day?  
 
-### The average number of steps taken per day
+The src data is aggregated based on date as below:  
+
 ```{r echo=FALSE, results="asis"}
 cleanDf <- df[(which(!is.na(df$steps))), ]
 nonZeroClean <- df[(cleanDf$steps != 0), ]
@@ -52,7 +55,7 @@ names(dailyMean) <- c("date", "avg_steps");
 mxt <- xtable(dailyMean, );
 print(mxt, type="html")
 ```
-
+  
 #### 1. Make a histogram of the total number of steps taken each day
 ```{r histogramTotalPerDay, echo=FALSE }
 dailySum <- aggregate(nonZeroClean$steps, by=list(date = nonZeroClean$date), FUN = sum);
@@ -122,7 +125,7 @@ chooseMeanOrValueOnNA <- function(steps, mean) {
 withMean <- data.frame(df, with_mean = sapply(df$date, addAverageForRespectiveDay, averages=dailyMean));
 imputed_activity <- data.frame(withMean, imputed_steps = mapply(FUN=chooseMeanOrValueOnNA, steps=withMean$steps, mean=withMean$with_mean));
 
-imputed_table <- xtable(head(imputed_activity[(which(is.na(imputed_activity$steps)) | (imputed_activity$steps != 0)), c("date", "interval", "steps", "imputed_steps")], 50), );
+imputed_table <- xtable(head(imputed_activity[(is.na(imputed_activity$steps) | (imputed_activity$steps != 0)), c("date", "interval", "steps", "imputed_steps")], 25), );
 print(imputed_table, "html")
 ````
 #### 4. Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
@@ -139,7 +142,9 @@ medianImputedPerDay <- median(imputedDailyTotal$total);
 ````
 
 The mean of the imputed data is `r meanImputedPerDay`.  
-The median of the imputed data is `r medianImputedPerDay`.  
+The median of the imputed data is `r medianImputedPerDay`.    
+
+The impact of imputing the data is that the median and mean for the daily usage is generally higher, and additionally the overall usage based on the histogram is more evenly distributed.  
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
@@ -147,11 +152,14 @@ The median of the imputed data is `r medianImputedPerDay`.
 ````{r echo=TRUE, results="asis"}
 dayType <- factor(c("Weekend", "Weekday"));
 calendarizedAdjustedActivity <- data.frame(imputed_activity, type = sapply(imputed_activity$date, dayTypeFunc));
-xta <- xtable(head(calendarizedAdjustedActivity), )
+
+calendarizedAdjustedActivity.withFormattedDates <- calendarizedAdjustedActivity;
+calendarizedAdjustedActivity.withFormattedDates[, "date_time"] <- as.character(calendarizedAdjustedActivity.withFormattedDates[, "date_time"]);
+xta <- xtable(head(calendarizedAdjustedActivity.withFormattedDates), )
 print(xta, "html")
 ````  
 
-#### 2. Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis).   
+#### 2. Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis).     
 
 ````{r echo=TRUE, results="asis"}
 weekendData <- calendarizedAdjustedActivity[calendarizedAdjustedActivity$type == "Weekend", c("interval", "imputed_steps")];
@@ -162,11 +170,12 @@ weekdayAverage <- data.frame(aggregate(weekdayData$imputed_steps, by=list(interv
 
 combined <- rbind(weekendAverage, weekdayAverage);
 names(combined) <- c("interval", "avg_steps", "type");
-
-g <- ggplot(combined) + geom_line(aes(interval, avg_steps)) + facet_grid(type ~ .);
-print(g)
 ````
 
+````{r echo=FALSE, results="asis"}
+g <- ggplot(combined) + geom_line(aes(interval, avg_steps)) + facet_grid(type ~ .);
+print(g)
+````  
 
 
 ## Supporting functions
